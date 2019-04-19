@@ -7,11 +7,10 @@ const typeDefs = require('./graphql/schema');
 export const handler = new ApolloServer({
   resolvers,
   typeDefs,
-  context: async ({ req }) => {
-    const token =
-      req && req.headers && req.headers.authorization
-        ? req.headers.authorization.replace('Bearer ', '')
-        : null;
+  context: async ({ event }) => {
+    const token = event.headers.authorization
+      ? event.headers.authorization.replace('Bearer ', '')
+      : null;
 
     if (token) {
       const payload = await util.promisify(jwt.verify)(token, 'whateversecret');
