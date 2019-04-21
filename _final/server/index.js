@@ -1,4 +1,4 @@
-const { ApolloServer } = require('apollo-server');
+const { ApolloServer, PubSub } = require('apollo-server');
 const jwt = require('jsonwebtoken');
 const util = require('util');
 const resolvers = require('./resolvers');
@@ -7,7 +7,12 @@ const typeDefs = require('./schema');
 const server = new ApolloServer({
   resolvers,
   typeDefs,
-  context: async ({ req }) => {
+  context: async ({ req, connection }) => {
+    if (connection) {
+      // check connection for metadata
+      return connection.context;
+    }
+
     const token = req.headers.authorization
       ? req.headers.authorization.replace('Bearer ', '')
       : null;
