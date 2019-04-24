@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
+import { Query } from 'react-apollo';
 import styled from 'styled-components';
 import Button from '../components/Button';
 import Container from '../components/Container';
 import Heading from '../components/Heading';
 import Input from '../components/Input';
+import Loading from '../components/Loading';
 import Tweets from '../components/Tweets';
+import { allTweetsQuery } from '../queries';
 
 const Form = styled.form`
   display: flex;
   margin: 24px 0;
 `;
-
-// TODO: Delete this after exercise
-const tweets = [];
 
 const Home = ({ loading, me }) => {
   const [tweet, setTweet] = useState('');
@@ -33,7 +33,16 @@ const Home = ({ loading, me }) => {
           Tweet
         </Button>
       </Form>
-      <Tweets loading={loading} me={me} tweets={tweets} />
+      <Query query={allTweetsQuery}>
+        {({ data, loading: tweetsLoading, error }) => {
+          if (tweetsLoading) return <Loading />;
+          if (error) return `Error: ${error.message}`;
+
+          const { tweets } = data;
+
+          return <Tweets loading={loading} me={me} tweets={tweets} />;
+        }}
+      </Query>
     </Container>
   );
 };

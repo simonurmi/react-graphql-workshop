@@ -1,12 +1,16 @@
 import dayjs from 'dayjs';
 import React, { useState } from 'react';
+import { Query } from 'react-apollo';
 import { Calendar } from 'react-feather';
 import styled from 'styled-components';
 import Avatar from '../components/Avatar';
 import Button from '../components/Button';
 import Container from '../components/Container';
+import Loading from '../components/Loading';
 import ProfileForm from '../components/ProfileForm';
 import Tweets from '../components/Tweets';
+import NotFound from '../pages/NotFound';
+import { userQuery } from '../queries';
 
 const Header = styled.header`
   background: #000;
@@ -57,42 +61,59 @@ const StyledCalendar = styled(Calendar)`
   margin-right: 8px;
 `;
 
-// TODO: Delete those variables after exercise
-const canEdit = false;
-const user = { tweets: [] };
-
 const Profile = ({ loading, me, username }) => {
   const [isEditing, setEditing] = useState(false);
 
   return (
     <div>
       <Header />
-      <Container>
-        <Section>
-          <Photo>
-            {user.photo && (
-              <Avatar src={user.photo} alt={`@${user.username}`} size={128} />
-            )}
-          </Photo>
-          {canEdit && !isEditing && (
-            <Button onClick={() => setEditing(true)}>Edit profile</Button>
-          )}
-        </Section>
-        {isEditing ? (
-          <ProfileForm user={user} setEditing={setEditing} />
-        ) : (
-          <>
-            <DisplayName>{user.displayName}</DisplayName>
-            <Handle>@{user.username}</Handle>
-            <Bio>{user.bio}</Bio>
-            <Info>
-              <StyledCalendar /> Joined{' '}
-              {dayjs(user.createdAt).format('MMMM YYYY')}
-            </Info>
-          </>
-        )}
-        <Tweets loading={loading} me={me} tweets={user.tweets} />
-      </Container>
+      <Query query={userQuery} variables={{ username }}>
+        {({ data, loading: loadingUser, error }) => {
+          if (loadingUser) return <Loading />;
+          if (error) return `Error: ${error.message}`;
+
+          const { user } = data;
+
+          if (!user) {
+            return <NotFound />;
+          }
+
+          const canEdit = me.id === user.id;
+
+          return (
+            <Container>
+              <Section>
+                <Photo>
+                  {user.photo && (
+                    <Avatar
+                      src={user.photo}
+                      alt={`@${user.username}`}
+                      size={128}
+                    />
+                  )}
+                </Photo>
+                {canEdit && !isEditing && (
+                  <Button onClick={() => setEditing(true)}>Edit profile</Button>
+                )}
+              </Section>
+              {isEditing ? (
+                <ProfileForm user={user} setEditing={setEditing} />
+              ) : (
+                <>
+                  <DisplayName>{user.displayName}</DisplayName>
+                  <Handle>@{user.username}</Handle>
+                  <Bio>{user.bio}</Bio>
+                  <Info>
+                    <StyledCalendar /> Joined{' '}
+                    {dayjs(user.createdAt).format('MMMM YYYY')}
+                  </Info>
+                </>
+              )}
+              <Tweets loading={loading} me={me} tweets={user.tweets} />
+            </Container>
+          );
+        }}
+      </Query>
     </div>
   );
 };
