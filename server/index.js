@@ -1,4 +1,6 @@
 const { ApolloServer, ApolloError, gql } = require('apollo-server');
+const jwt = require('jsonwebtoken');
+const util = require('util');
 const {
   createTweet,
   deleteTweet,
@@ -35,6 +37,7 @@ const typeDefs = gql`
     deleteUser(id: ID!): User
   }
   type Query {
+    me: User
     tweet(id: ID!): Tweet
     tweets: [Tweet!]!
     user(username: String!): User
@@ -54,7 +57,7 @@ const typeDefs = gql`
     username: String!
     displayName: String
     bio: String
-    email: String!
+    email: String
     photo: String
     tweets: [Tweet!]!
   }
@@ -77,6 +80,9 @@ const resolvers = {
     updateUser: (obj, args) => updateUser(args),
   },
   Query: {
+    me: (obj, args, context) => {
+      return getUserByUsername(context.user);
+    },
     tweet: (obj, args) => getTweetById(args.id),
     tweets: () => getAllTweets(),
     user: (obj, args) => getUserByUsername(args.username),
@@ -86,10 +92,28 @@ const resolvers = {
     from: obj => getUserByUsername(obj.from),
   },
   User: {
+    email: (obj, args, context) =>
+      context.user === obj.username ? obj.email : null,
     tweets: obj => getTweetsFrom(obj.username),
   },
 };
 
-const server = new ApolloServer({ resolvers, typeDefs });
+const server = new ApolloServer({
+  resolvers,
+  typeDefs,
+  context: async ({ req }) => {
+    const token = req.headers.authorization
+      ? req.headers.authorization.replace('Bearer ', '')
+      : null;
+
+    if (token) {
+      const payload = await util.promisify(jwt.verify)(token, 'whateversecret');
+
+      return { user: payload.user };
+    }
+
+    return null;
+  },
+});
 
 server.listen().then(server => console.log(`Server started at ${server.url}`));
