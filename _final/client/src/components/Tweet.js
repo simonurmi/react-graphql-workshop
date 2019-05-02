@@ -1,5 +1,5 @@
 import gql from 'graphql-tag';
-import React from 'react';
+import React, { memo } from 'react';
 import { Mutation } from 'react-apollo';
 import {
   MessageCircle as Comment,
@@ -10,7 +10,7 @@ import {
 import { Link } from '@reach/router';
 import styled from 'styled-components';
 import Avatar from './Avatar';
-import Date from './Date';
+// import Date from './Date';
 import { allTweetsQuery, userQuery } from '../queries';
 
 const deleteTweetMutation = gql`
@@ -88,66 +88,66 @@ const Spacer = styled.div`
   width: 24px;
 `;
 
-const Tweet = ({ me, loading, tweet }) => {
-  const canDelete = tweet.from.id === me.id;
+const Tweet = ({
+  canDelete, loading, tweet, from, id,
+}) => (
+  <Wrapper>
+    <Link to={`/${from.username}`}>
+      <Avatar src={from.photo} alt={`@${from.username}`} />
+    </Link>
+    <Content>
+      <Info>
+        <StyledLink to={`/${from.username}`}>
+          <DisplayName>{from.displayName}</DisplayName>
+          {` @${from.username}`}
+        </StyledLink>
+        {' '}
+        {/* • <Date date={tweet.createdAt} /> */}
+      </Info>
+      <Message>{tweet}</Message>
+      <Actions>
+        <Button disabled>
+          <Comment />
+        </Button>
+        <Button disabled>
+          <Retweet />
+        </Button>
+        <Button disabled>
+          <Share />
+        </Button>
+        {canDelete ? (
+          <Mutation
+            mutation={deleteTweetMutation}
+            variables={{ id }}
+            refetchQueries={[
+              { query: allTweetsQuery },
+              {
+                query: userQuery,
+                variables: { username: from.username },
+              },
+            ]}
+            awaitRefetchQueries
+          >
+            {(mutate) => {
+              const onConfirm = () => {
+                if (window.confirm('Are you sure?')) {
+                  mutate();
+                }
+              };
 
-  return (
-    <Wrapper>
-      <Link to={`/${tweet.from.username}`}>
-        <Avatar src={tweet.from.photo} alt={`@${tweet.from.username}`} />
-      </Link>
-      <Content>
-        <Info>
-          <StyledLink to={`/${tweet.from.username}`}>
-            <DisplayName>{tweet.from.displayName}</DisplayName> @
-            {tweet.from.username}
-          </StyledLink>{' '}
-          • <Date date={tweet.createdAt} />
-        </Info>
-        <Message>{tweet.tweet}</Message>
-        <Actions>
-          <Button disabled>
-            <Comment />
-          </Button>
-          <Button disabled>
-            <Retweet />
-          </Button>
-          <Button disabled>
-            <Share />
-          </Button>
-          {canDelete ? (
-            <Mutation
-              mutation={deleteTweetMutation}
-              variables={{ id: tweet.id }}
-              refetchQueries={[
-                { query: allTweetsQuery },
-                {
-                  query: userQuery,
-                  variables: { username: tweet.from.username },
-                },
-              ]}
-              awaitRefetchQueries
-            >
-              {mutate => (
-                <Button
-                  disabled={loading}
-                  onClick={() => {
-                    if (window.confirm('Are you sure?')) {
-                      mutate();
-                    }
-                  }}
-                >
+              return (
+                <Button disabled={loading} onClick={onConfirm}>
                   <Trash />
                 </Button>
-              )}
-            </Mutation>
-          ) : (
-            <Spacer />
-          )}
-        </Actions>
-      </Content>
-    </Wrapper>
-  );
-};
+              );
+            }}
+          </Mutation>
+        ) : (
+          <Spacer />
+        )}
+      </Actions>
+    </Content>
+  </Wrapper>
+);
 
-export default Tweet;
+export default memo(Tweet);

@@ -1,10 +1,12 @@
 import gql from 'graphql-tag';
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Query } from 'react-apollo';
 import { Router } from '@reach/router';
-import Navbar from '../components/Navbar';
-import Home from '../pages/Home';
-import Profile from '../pages/Profile';
+import Navbar from './Navbar';
+import Loading from './Loading';
+
+const Home = lazy(() => import('../pages/Home'));
+const Profile = lazy(() => import('../pages/Profile'));
 
 const currentUserQuery = gql`
   query getCurrentUser {
@@ -27,10 +29,12 @@ const App = () => (
       return (
         <>
           <Navbar me={me} />
-          <Router primary={false}>
-            <Home loading={loading} me={me || {}} path="/" />
-            <Profile loading={loading} me={me || {}} path="/:username" />
-          </Router>
+          <Suspense fallback={<Loading />}>
+            <Router primary={false}>
+              <Home loading={loading} me={me || {}} path="/" />
+              <Profile loading={loading} me={me || {}} path="/:username" />
+            </Router>
+          </Suspense>
         </>
       );
     }}

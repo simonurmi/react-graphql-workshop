@@ -7,12 +7,7 @@ import RawInput from './Input';
 import { userQuery } from '../queries';
 
 const updateUserMutation = gql`
-  mutation updateUser(
-    $id: ID!
-    $bio: String
-    $displayName: String
-    $photo: String
-  ) {
+  mutation updateUser($id: ID!, $bio: String, $displayName: String, $photo: String) {
     updateUser(id: $id, bio: $bio, displayName: $displayName, photo: $photo) {
       id
     }
@@ -37,6 +32,7 @@ const SaveButton = styled(Button).attrs({ primary: true })`
 `;
 
 const ProfileForm = ({ user, setEditing }) => {
+  // const [isEditing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user.displayName);
   const [bio, setBio] = useState(user.bio);
   const [photo, setPhoto] = useState(user.photo);
@@ -48,52 +44,42 @@ const ProfileForm = ({ user, setEditing }) => {
     setEditing(false);
   };
 
+  const onNameChange = event => setDisplayName(event.target.value);
+  const onBioChange = event => setBio(event.target.value);
+  const onPhotoChange = event => setPhoto(event.target.value);
+
   return (
     <Mutation
       mutation={updateUserMutation}
-      variables={{ id: user.id, displayName, bio, photo }}
-      onCompleted={() => reset()}
-      refetchQueries={[
-        { query: userQuery, variables: { username: user.username } },
-      ]}
+      variables={{
+        id: user.id, displayName, bio, photo,
+      }}
+      onCompleted={reset}
+      refetchQueries={[{ query: userQuery, variables: { username: user.username } }]}
       awaitRefetchQueries
     >
-      {mutate => (
-        <Form
-          onSubmit={event => {
-            event.preventDefault();
-            mutate();
-          }}
-        >
-          <Input
-            placeholder="Name"
-            value={displayName}
-            onChange={event => setDisplayName(event.target.value)}
-            big
-          />
-          <Input
-            placeholder="Bio"
-            value={bio}
-            onChange={event => setBio(event.target.value)}
-          />
-          <Input
-            placeholder="Avatar URL"
-            value={photo}
-            onChange={event => setPhoto(event.target.value)}
-          />
-          <Actions>
-            <Button type="reset" onClick={() => reset()}>
-              Cancel
-            </Button>
-            <SaveButton
-              primary
-              disabled={displayName === '' || !photo.startsWith('http')}
-            >
-              Save
-            </SaveButton>
-          </Actions>
-        </Form>
-      )}
+      {(mutate) => {
+        const onFormSubmit = (event) => {
+          event.preventDefault();
+          mutate();
+        };
+
+        return (
+          <Form onSubmit={onFormSubmit}>
+            <Input placeholder="Name" value={displayName} onChange={onNameChange} big />
+            <Input placeholder="Bio" value={bio} onChange={onBioChange} />
+            <Input placeholder="Avatar URL" value={photo} onChange={onPhotoChange} />
+            <Actions>
+              <Button type="reset" onClick={reset}>
+                Cancel
+              </Button>
+              <SaveButton primary disabled={displayName === '' || !photo.startsWith('http')}>
+                Save
+              </SaveButton>
+            </Actions>
+          </Form>
+        );
+      }}
     </Mutation>
   );
 };
